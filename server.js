@@ -7,6 +7,7 @@ app.use((req, res, next) => {
   next();
 });
 
+// Original endpoint - get count of specific item
 app.get('/inventory/:userId/:assetId', async (req, res) => {
   const { userId, assetId } = req.params;
   
@@ -36,11 +37,82 @@ app.get('/inventory/:userId/:assetId', async (req, res) => {
   }
 });
 
+// NEW endpoint - find most hoarded item
+app.get('/hoarding/:userId', async (req, res) => {
+  const { userId } = req.params;
+  
+  try {
+    console.log(`Finding most hoarded item for user ${userId}`);
+    
+    // Get collectibles (limiteds and limited U's)
+    const collectiblesResponse = await axios.get(
+      `https://inventory.roblox.com/v1/users/${userId}/assets/collectibles?limit=100&sortOrder=Desc`
+    );
+    
+    if (!collectiblesResponse.data.data || collectiblesResponse.data.data.length === 0) {
+      return res.json({
+        success: true,
+        userId: userId,
+        maxCount: 0,
+        itemName: "No Items",
+        assetId: 0
+      });
+    }
+    
+    // Count duplicates
+    const itemCounts = {};
+    const itemNames = {};
+    
+    for (const item of collectiblesResponse.data.data) {
+      const assetId = item.assetId;
+      const name = item.name;
+      
+      if (!itemCounts[assetId]) {
+        itemCounts[assetId] = 0;
+        itemNames[assetId] = name;
+      }
+      itemCounts[assetId]++;
+    }
+    
+    // Find max
+    let maxCount = 0;
+    let maxAssetId = 0;
+    
+    for (const [assetId, count] of Object.entries(itemCounts)) {
+      if (count > maxCount) {
+        maxCount = count;
+        maxAssetId = assetId;
+      }
+    }
+    
+    res.json({
+      success: true,
+      userId: userId,
+      maxCount: maxCount,
+      itemName: itemNames[maxAssetId] || "Unknown",
+      assetId: maxAssetId
+    });
+    
+  } catch (error) {
+    console.error('Error:', error.message);
+    res.json({
+      success: false,
+      error: error.message,
+      maxCount: 0,
+      itemName: "Error",
+      assetId: 0
+    });
+  }
+});
+
 app.get('/', (req, res) => {
   res.json({ 
     status: 'online',
     message: 'Roblox Inventory API is running!',
-    usage: 'GET /inventory/{userId}/{assetId}'
+    endpoints: {
+      specific: 'GET /inventory/{userId}/{assetId}',
+      hoarding: 'GET /hoarding/{userId}'
+    }
   });
 });
 
