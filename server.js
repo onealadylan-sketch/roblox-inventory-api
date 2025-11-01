@@ -7,7 +7,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Original endpoint - get count of specific item
 app.get('/inventory/:userId/:assetId', async (req, res) => {
   const { userId, assetId } = req.params;
   
@@ -37,14 +36,12 @@ app.get('/inventory/:userId/:assetId', async (req, res) => {
   }
 });
 
-// NEW endpoint - find most hoarded item
 app.get('/hoarding/:userId', async (req, res) => {
   const { userId } = req.params;
   
   try {
     console.log(`Finding most hoarded item for user ${userId}`);
     
-    // Get collectibles (limiteds and limited U's)
     const collectiblesResponse = await axios.get(
       `https://inventory.roblox.com/v1/users/${userId}/assets/collectibles?limit=100&sortOrder=Desc`
     );
@@ -59,7 +56,6 @@ app.get('/hoarding/:userId', async (req, res) => {
       });
     }
     
-    // Count duplicates
     const itemCounts = {};
     const itemNames = {};
     
@@ -74,7 +70,6 @@ app.get('/hoarding/:userId', async (req, res) => {
       itemCounts[assetId]++;
     }
     
-    // Find max
     let maxCount = 0;
     let maxAssetId = 0;
     
